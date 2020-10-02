@@ -1,0 +1,53 @@
+﻿@page "/"
+@using BlazorClient.Shared
+@inject HubService _hubService
+
+<h1>Chat!</h1>
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Send a Message</h5>
+        <div class="card-text">
+            <textarea @bind="Content" class="form-control"></textarea>
+            <button class="btn btn-primary" @onclick="AddContentAsync">Add Content</button>
+        </div>
+    </div>
+</div>
+<ul class="list-unstyled">
+    @foreach(var chat in Chats)
+    {
+        <li class="alert alert-info">
+            <p>@chat.From</p>
+            <p>@chat.Sent.ToLongTimeString()</p>
+            <pre>@chat.Message</pre>
+        </li>
+    }
+</ul>
+
+@code {
+
+    public string Content { get; set; }
+    public List<ChatModel> Chats { get; set; } = new List<ChatModel>() { new ChatModel { From = "Me", Message = "Hi", Sent = DateTime.Now } };
+
+    protected async override Task OnInitializedAsync()
+    {
+        await _hubService.StartHub();
+
+        _hubService.OnChatReceived += (obj, chat) =>
+        {
+            Chats.Add(chat);
+            StateHasChanged();
+        };
+    }
+
+    public async Task AddContentAsync()
+    {
+        var message = new ChatModel
+        {
+            From = "Jeff",
+            Message = Content,
+            Sent = DateTime.Now
+        };
+        await _hubService.SendChat(message);
+    }
+}
